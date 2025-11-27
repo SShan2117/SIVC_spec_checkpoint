@@ -795,6 +795,7 @@ int main() {
 
     MKL_Complex16 *_Mmn = new MKL_Complex16[nk * nqG * 4]; // To store form factors:lambda(m1,m2,k+q+G); bands:2*2; k:nk; q+G:nqG
     ofstream outf;                                         // Output class
+    ifstream inf;
     double tE[lnk + 2];                                    // To store kenetics
     if (rank == 0) {
         MKL_Complex16 *vr = new MKL_Complex16[nk * lnG * ncb]; // To store eigenvectors of BM for each k (number:nk), with lnG for X, ncb for mi;
@@ -930,7 +931,7 @@ int main() {
             for (int i = 0; i < size * NumAF; i++)
                 gAF[i] = uni1(engine); // normal distribution?
             if (ifcontinue) {          // If continue from last run
-                ifstream inf("gAF.dat", ios::in);
+                inf.open("gAF.dat", ios::in);
                 for (int i = 0; i < size * NumAF; i++)
                     inf >> gAF[i]; // Assign last fields
                 inf.close();
@@ -946,6 +947,7 @@ int main() {
         }
         SVD0(AF, expK, Mmn, UV, nqG, B);
 
+        
         double r = 0.1,
                deltar = 0.1,
                acrate = 0.0,
@@ -963,6 +965,7 @@ int main() {
         // acceptrate.open("acceptrate.dat");
 
 
+        int measure_times = 0;
         for (int imc = 0; imc < Nmc; imc++) {
             if (imc % 50 == 0)
                 cout << "rank " << rank << " imc " << imc << endl;
@@ -971,7 +974,7 @@ int main() {
             if (imc > 0)
                 r += deltar * (acrate - 0.4);
             if (rank == 0) {
-                outf.open("accrate", ios::app);
+                outf.open("accrate.dat", ios::app);
                 outf << "imc" << imc << " " << "acrate" << acrate;
                 outf << endl;
                 outf.close();
@@ -980,6 +983,7 @@ int main() {
             for (idr = 1; idr > -1; idr--) { // Back and forth update over imaginary time;idr=1,from B((n-1)t,(n-2)t) to B(t,0);idr=0,from B(t,0) to B((n-1)t,(n-2)t);
 
                 if (idr == 1 &&((ifcontinue == 0 && imc >= Smc)|| ifcontinue == 1 && imc >= 1)) {
+                    measure_times += 1;
                     // Copy UV and S
                     for (int i = 0; i < (ntau + 1) * lnk; i++)
                         Stmp[i] = S[i];
@@ -1174,6 +1178,21 @@ int main() {
         delete[] Gt0;
         delete[] expK;
 
+        int measure_pre = 0;
+        if (rank == 0){
+            inf.open("measure_times.dat");
+            if (inf.is_open()){
+                inf >> measure_pre;
+            } else{
+                measure_pre = 0;
+            }
+            inf.close();
+
+            outf.open("measure_times.dat");
+            outf << measure_times + measure_pre << endl;
+            outf.close();
+        }
+
         val[0] = (Nmc - Smc) * ntau * nk * nk;
 
         for (int i = 0; i < (ntau + 1) * lnk; i++) {
@@ -1194,8 +1213,8 @@ int main() {
             CNut3[i].imag /= (Nmc - Smc) * nk * nk;
         }
         for (int i = 0; i < (ntau+1)*n_dot; i++){
-            SIVCqt[i].real /= (Nmc-Smc) * nk * nk;
-            SIVCqt[i].imag /= (Nmc-Smc) * nk * nk;
+            SIVCqt[i].real /= nk * nk;
+            SIVCqt[i].imag /= nk * nk;
         }
 
         CN[0] /= val[0]; // Final value of valley polarization
@@ -1209,13 +1228,13 @@ int main() {
         MPI_Gather(fgt0, (ntau + 1) * lnk, MPI_C_DOUBLE_COMPLEX, Fgt0, (ntau + 1) * lnk, MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD); // Gather fgt0 of all
         if (rank == 0) {
             outf.open("SACugt.dat", ios::app);
-            for (int k = 0; k < lnk; k += 2) { // 每次处理一对 k, k+1
+            for (int k = 0; k < lnk; k += 2) { 
                 outf << "momentum" << k << " (smaller of k=" << k << " and k=" << k + 1 << ")" << endl;
                 for (int i = 0; i < size; i++) {
                     outf << "rank" << i << endl;
                     for (int j = 0; j < (ntau + 1); j++) {
                         int Id0 = i * (ntau + 1) * lnk + j * lnk + k;
-                        int Id1 = Id0 + 1; // 相当于 k+1 的索引
+                        int Id1 = Id0 + 1; 
                         double val0 = Fgt0[Id0].real;
                         double val1 = Fgt0[Id1].real;
                         outf << std::setprecision(3) << std::min(val0, val1) << " ";
@@ -1249,18 +1268,56 @@ int main() {
         
         MKL_Complex16 *FSIVCqt = NULL;
         MKL_Complex16 *FSIVCqt_allr = NULL;
+        MKL_Complex16 *FSIVCqt_allr_pre = NULL;
 
+
+        int total = (ntau+1) * n_dot * size; 
         if (rank == 0){
             FSIVCqt = new MKL_Complex16[(ntau+1)*n_dot*2];
             FSIVCqt_allr = new MKL_Complex16[(ntau+1)*n_dot*(size+1)];
+            FSIVCqt_allr_pre = new MKL_Complex16[(ntau+1)*n_dot*(size+1)];
+
+            for(int i=0;i<total;i++){
+                FSIVCqt_allr_pre[i].real = 0.0;
+                FSIVCqt_allr_pre[i].imag = 0.0;
+            }
+
+            std::string tmp;
+            int read_rank, read_itau;
+            double val;
+
+            inf.open("FSIVCqt_allr.dat");
+            if (inf.is_open()){
+                for(int i_rank = 0; i_rank < size; i_rank++){
+                    inf >> tmp >> read_rank;   
+                    for(int itau = 0; itau < ntau+1; itau++){
+                        inf >> tmp >> read_itau;
+
+                        for(int iq = 0; iq < n_dot; iq++){
+                            int Id0 = i_rank * (ntau+1) * n_dot + itau * n_dot + iq;
+                            inf >> val;
+                            FSIVCqt_allr_pre[Id0].real = val;
+                        }
+                    }
+                }
+            }
         }
         MPI_Gather(SIVCqt, (ntau + 1) * n_dot, MPI_C_DOUBLE_COMPLEX, FSIVCqt_allr, (ntau + 1) * n_dot, MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD); 
 
+        
+
         if (rank == 0){
-            outf.open("FSIVCqt_allr.dat");
+            for (int i = 0; i < size * (ntau+1) * n_dot; i++){
+                FSIVCqt_allr[i].real = (FSIVCqt_allr_pre[i].real * measure_pre + FSIVCqt_allr[i].real * measure_times) / (measure_pre + measure_times);
+            }
+
+            outf.open("q_points.dat");
             for(int q_i = 0; q_i < n_dot; q_i++){
                 outf << q1[q_i] << " " << q2[q_i] << endl;
             }
+            outf.close();
+
+            outf.open("FSIVCqt_allr.dat");
             for(int i_rank = 0; i_rank < size; i_rank++){
                 outf << "rank " << i_rank << endl;
                 for(int itau = 0; itau < ntau+1; itau++){
