@@ -31,7 +31,7 @@ const int _nG = 8,  // Eight times of |G| to cover BMcut
     Nmc = 60,      // Number of mc steps
     Smc = 30,      // Thermolization steps
 
-    ifcontinue = 0, // If continue from last run
+    ifcontinue = 1, // If continue from last run
     nk = nk0 * nk0, // Momentum smearing in mBZ, system size
     lnG = nG * 4,   // Linear size of BM model matrix
     LnG = lnG * lnG,
@@ -1308,7 +1308,7 @@ int main() {
 
         if (rank == 0){
             for (int i = 0; i < size * (ntau+1) * n_dot; i++){
-                FSIVCqt_allr[i].real = (FSIVCqt_allr_pre[i].real * measure_pre + FSIVCqt_allr[i].real * measure_times) / (measure_pre + measure_times);
+                FSIVCqt_allr[i].real = (FSIVCqt_allr_pre[i].real * measure_pre + FSIVCqt_allr[i].real) / (measure_pre + measure_times);
             }
 
             outf.open("q_points.dat");
