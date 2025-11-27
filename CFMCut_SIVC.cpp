@@ -25,11 +25,11 @@ double G0[2][2] = {{-sqrt(3.0) / 2.0, -1.5}, {sqrt(3.0), 0.0}},                 
 const int _nG = 8,  // Eight times of |G| to cover BMcut
     nG = 127,       // Total number of momentum points for BMcut
     ncb = 2,        // Two flat bands
-    nk0 = 6,        // Linear size of momentum smearing in mBZ
+    nk0 = 9,        // Linear size of momentum smearing in mBZ
 
     ntau = 150,     // Number of imaginary time slices
-    Nmc = 60,      // Number of mc steps
-    Smc = 30,      // Thermolization steps
+    Nmc = 3000,      // Number of mc steps
+    Smc = 300,      // Thermolization steps
 
     ifcontinue = 1, // If continue from last run
     nk = nk0 * nk0, // Momentum smearing in mBZ, system size
@@ -1193,7 +1193,7 @@ int main() {
             outf.close();
         }
 
-        val[0] = (Nmc - Smc) * ntau * nk * nk;
+        //val[0] = (Nmc - Smc) * ntau * nk * nk;
 
         for (int i = 0; i < (ntau + 1) * lnk; i++) {
             fgt0[i].real /= (Nmc - Smc); // Final nonequal-time Green's function for each k point of two bands
@@ -1217,10 +1217,10 @@ int main() {
             SIVCqt[i].imag /= nk * nk;
         }
 
-        CN[0] /= val[0]; // Final value of valley polarization
-        CN[1] /= val[0];
-        CN2[0] /= val[0]; // Final value of intervalley coherance
-        CN2[1] /= val[0];
+        CN[0] /= 1.0*(Nmc - Smc) * ntau * nk * nk; // Final value of valley polarization
+        CN[1] /= 1.0*(Nmc - Smc) * ntau * nk * nk;
+        CN2[0] /= 1.0*(Nmc - Smc) * ntau * nk * nk; // Final value of intervalley coherance
+        CN2[1] /= 1.0*(Nmc - Smc) * ntau * nk * nk;
 
         MKL_Complex16 *Fgt0 = NULL;
         if (rank == 0)

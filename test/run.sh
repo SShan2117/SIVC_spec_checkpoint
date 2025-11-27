@@ -3,8 +3,8 @@
 #SBATCH --output=pin.%j.out
 #SBATCH --error=pin.%j.err
 #SBATCH --time=5-05:00:00
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks=32
+#SBATCH --cpus-per-task=1
 #SBATCH -p amd  
 
 source ~/miniforge/etc/profile.d/conda.sh

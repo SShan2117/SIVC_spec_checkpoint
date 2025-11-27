@@ -2,8 +2,8 @@
 #SBATCH --job-name=CFMC
 #SBATCH --partition=neptune,pluto,charon
 #SBATCH --time=7-0:00:00
-#SBATCH --nodes=2
-#SBATCH --ntasks=2
+#SBATCH --nodes=4
+#SBATCH --ntasks=32
 #SBATCH --output=slurm_logs/%x.out.%j
 #SBATCH --error=slurm_logs/%x.err.%j
 

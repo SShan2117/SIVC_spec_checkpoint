@@ -1,0 +1,8 @@
+environment: line 17: /usr/share/lmod/lmod/libexec/lmod: No such file or directory
+environment: line 17: /usr/share/lmod/lmod/libexec/lmod: No such file or directory
+environment: line 17: /usr/share/lmod/lmod/libexec/lmod: No such file or directory
+environment: line 17: /usr/share/lmod/lmod/libexec/lmod: No such file or directory
+/data/home/shan2117/SIVC_spec_checkpoint/bb_test/./pin.x: error while loading shared libraries: libmkl_intel_lp64.so.2: cannot open shared object file: No such file or directory
+srun: error: cn06: task 0: Exited with exit code 127
+/data/home/shan2117/SIVC_spec_checkpoint/bb_test/./pin.x: error while loading shared libraries: libmkl_intel_lp64.so.2: cannot open shared object file: No such file or directory
+srun: error: cn07: task 1: Exited with exit code 127
